@@ -39,3 +39,21 @@ Given the mapping above:
 ```markdown
 基于当前已识别到的资料，空载反电势及额定工况相关结果可用于方案性能评估与设计校核参考。对于测试条件与仿真边界条件尚未完全一致的指标，建议结合具体测试电压、转速、控制方式及温度状态进一步校核。
 ```
+
+## Example Incremental Update Request
+
+> Use `$motor-report-skill` to update the existing report `report-output/motor-trial-report.md`. Existing state files are `report-output/report-state.json` and `report-output/evidence-ledger.json`. The original `25b41803d278` no-load back-EMF FEA simulation has been recalculated. Please re-read that hash folder, compare the changed back-EMF result with the existing measured data, and update only affected report sections.
+
+## Example New Simulation Request
+
+> Use `$motor-report-skill` to update the existing report. A new hash folder `abc123ef4567` was added and corresponds to cogging torque finite-element simulation. Please compare it with available measured data if comparable, otherwise add it as simulation-only supplemental evidence and update the report state package.
+
+## Example State Package Paths
+
+```text
+report-output/
+├── motor-trial-report.md
+├── report-state.json
+├── evidence-ledger.json
+└── change-log.md
+```

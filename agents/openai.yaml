@@ -1,4 +1,4 @@
 interface:
   display_name: "Motor Report Skill"
-  short_description: "Draft motor trial reports from measured and simulation data"
-  default_prompt: "Use $motor-report-skill to analyze this motor trial project, compare measured and simulation results, and draft a customer-facing Markdown report."
+  short_description: "Draft visual motor trial reports from measured and simulation data"
+  default_prompt: "Use $motor-report-skill to analyze this motor trial project, compare measured and simulation results, generate useful figures, and draft a customer-facing Markdown report."

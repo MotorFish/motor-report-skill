@@ -81,7 +81,19 @@ The final Markdown report is written by the LLM. Use tables where they improve c
 
 Use `report-style.md` for tone, difference explanation, and conclusion constraints.
 
-## 8. Deliver Output
+## 8. Create State Package
+
+After drafting the first report, create and save:
+
+- `report-state.json`
+- `evidence-ledger.json`
+- `change-log.md`
+
+Use `create_report_state.py` when a structured report context is available. If the context is only partially structured, create the closest valid state package and mark uncertain fields clearly.
+
+This state package is required for reliable future incremental updates.
+
+## 9. Deliver Output
 
 Return the report path or the Markdown content requested by the user. Include short notes about:
 

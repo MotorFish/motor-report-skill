@@ -186,6 +186,34 @@ motor-report-skill/
 
 ## 能力边界
 
+### 运行依赖与模型能力
+
+该 Skill 的核心流程依赖 Codex/OpenClaw 这类 Agent 读取 `SKILL.md`、按需加载 `references/`，并能在工作区运行 Python 脚本。不同运行平台的大模型和工具能力不同，PDF、图片和图表识别效果会有明显差异。
+
+推荐 Python 环境：
+
+| 依赖 | 用途 | 缺失时影响 |
+|---|---|---|
+| `matplotlib` | 生成示波器波形、FEA 曲线、磁路法外特性、参数扫描性能图 | 图表脚本会返回 warning，无法生成 PNG 图。 |
+| `openpyxl` | 读取 `.xlsx` / `.xlsm` Excel 表格样例 | Excel 内容无法被 `read_tabular.py` 直接摘要，只能依赖其他格式或人工说明。 |
+| `pypdf` | 从有文本层的 PDF 抽取文本 | PDF 文本抽取少一个后端。 |
+| `pdfplumber` | 从 PDF 抽取文本和部分表格 | PDF 表格抽取能力下降。 |
+
+可选安装命令：
+
+```powershell
+python -m pip install matplotlib openpyxl pypdf pdfplumber
+```
+
+PDF 能力需要特别区分：
+
+- 如果 PDF 有可复制的文本层，`scripts/extract_pdf_text.py` 通常可用 `pypdf` 或 `pdfplumber` 抽取文字和部分表格。
+- 如果 PDF 是扫描件、截图型报告、嵌入图片的曲线图，或表格被渲染成图片，单靠 `pypdf/pdfplumber` 通常读不出图表数值。
+- 对图片型 PDF 图表的理解依赖运行平台是否能把 PDF 页面渲染成图片并交给具备视觉能力的大模型，或是否接入 OCR/表格识别工具。
+- 当前 Skill 没有内置通用 OCR 或 PDF 页面渲染脚本；在 OpenClaw + 非视觉模型/未配置 PDF 渲染工具的环境中，这类图表需要用户额外提供截图、导出的表格数据，或增加 PDF 转图/OCR fallback。
+
+因此，同一个 `电机测试报告.pdf` 在 Codex 桌面环境中可能能被视觉能力读出图表信息，但在 OpenClaw 接入不具备视觉（图像）理解能力的大模型、且未配置 PDF 页面渲染、向模型传入页面图像或 OCR 等替代链路时，通常只能抽取文本层，无法读取图片型图表。
+
 ### 能识别和处理的实测数据
 
 Skill 能处理的实测资料包括：

@@ -55,12 +55,10 @@ When `afd8dedc2b9a/attachments/工况报表结果.csv` exists, include a section
 | 转子外径 / 内径 | 67.1 / 60.6 | mm |
 | 绕组形式 | 集中绕组 |  |
 | 电枢绕组相电阻(25度) | 0.262365 | Ω |
-| 绕组工作温度 | 75 / 115 | ℃ |
-| 电枢绕组相电阻 | 0.31282 / 0.353183 | Ω |
-| 磁钢材料 | N45SH_爱科 |  |
+| 磁钢材料 | N45SH（示例） |  |
 ```
 
-The actual report may use a more detailed grouped table generated from `extract_motor_design_info.py`.
+The actual report may use a more detailed grouped table generated from `extract_motor_design_info.py`. Keep workpoint-varying rows such as `绕组工作温度` and working-temperature `电枢绕组相电阻` in operating-result or comparison sections, not in this basic-parameter section.
 
 ## Example Conservative Conclusion
 

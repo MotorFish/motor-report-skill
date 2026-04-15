@@ -24,7 +24,6 @@
 - 增强 `scripts/build_comparison.py`：增加单位转换、速度/电压/电流/温度/控制方式/相线电压口径检查，并输出 `comparabilityStatus`。
 - 新增 `scripts/build_feature_point_table.py`：按实测特征点表保留行结构，将仿真曲线/扫描结果插值或就近匹配到实测点。
 - 新增 `scripts/extract_motor_design_info.py`：从磁路法报表中提取单值结构/模型参数表，并把工况变化行放入 `skippedRows` 供后续章节使用。
-- 新增 `scripts/extract_machine_basic_info.py`：从磁路法报表抽取更宽泛的电机基础信息，并复算相电阻，适合作为分析辅助。
 - 增强 `scripts/plot_fea_curves.py`：对疑似三相反电势/电压波形自动转换为 AB/BC/CA 线电压/线反电势，并基于相邻正峰识别电周期、RMS 窗口和可选机械转速。
 - 增强 `scripts/plot_scope_waveform.py`：在示波器波形缺少转速时，可从线电压相邻正峰和极对数估计机械转速。
 - 增强 `scripts/diff_project_state.py` 与 `scripts/scan_project.py`：默认忽略报告输出、状态文件、图表、缓存和 `.git`，增量更新时默认只比较证据源文件，可显式开启新增证据扫描。
@@ -136,7 +135,6 @@ motor-report-skill/
     ├── convert_prmresult.py
     ├── create_report_state.py
     ├── diff_project_state.py
-    ├── extract_machine_basic_info.py
     ├── extract_motor_design_info.py
     ├── extract_pdf_text.py
     ├── normalize_metrics.py
@@ -176,7 +174,6 @@ motor-report-skill/
 | `scripts/build_comparison.py` | 包含 `measuredData` 与 `simulationData` 的 JSON | `comparisonCandidates` 与可直接候选的 `comparisonRows` | 做基础单位转换和条件一致性检查，输出 `comparable`、`condition_mismatch`、`unit_mismatch`、`needs_review`。结果是候选过滤器，最终可比性仍由 LLM 审核。 |
 | `scripts/build_feature_point_table.py` | 实测特征点 CSV/JSON、仿真曲线或扫描 CSV/JSON、匹配轴和字段映射 | 对比 CSV，可选 JSON | 保留实测报告的特征点行结构，把仿真值线性插值或就近匹配到实测点，并计算差值/百分比差异。适合 `T=Tmech`、`n=speed` 等特征点对齐场景。 |
 | `scripts/extract_motor_design_info.py` | 磁路法 `工况报表结果.csv` | 单值结构参数 Markdown/JSON，可选工况审计表 | 提取电机与仿真模型结构参数，分组输出模型概况、定子铁芯、绕组、基础电气参数、转子磁钢等。只把单一结构值放进报告基础参数表；随工况变化的速度、转矩、温度、电流、效率、损耗等放入 `skippedRows`，供其他章节使用。 |
-| `scripts/extract_machine_basic_info.py` | 磁路法 `工况报表结果.csv` | JSON，可选 Markdown | 抽取更宽泛的基础信息，并基于铜耗和相电流复算相电阻。适合作为相电阻核对或旧式基础信息整理辅助；正式基础参数章节优先用 `extract_motor_design_info.py`。 |
 | `scripts/resolve_report_figures.py` | `.em3` 项目根目录 | 复制后的几何图和 figure evidence JSON | 查找根目录 `geo2d.png`，缺失时查找一级哈希目录 `geo2d.png`，复制到报告 `figures/` 并生成证据记录。 |
 | `scripts/plot_scope_waveform.py` | 示波器 CSV | PNG 图和 figure evidence JSON | 面向当前示波器 CSV 示例格式的绘图脚本。自动选择最像时间/电压的数值列；可从磁路法报表、`--pole-pairs` 或 `--pole-count` 获得极对数，再用相邻正峰估算电频率和机械转速。其他示波器格式需 LLM 现场适配。 |
 | `scripts/plot_fea_curves.py` | LLM 选择的 FEA CSV/ECSV 曲线文件 | PNG 图和 figure evidence JSON | 识别数值表、选择 x 轴、绘制曲线或频谱。对疑似三相反电势/电压波形默认把前三相转换为 AB/BC/CA 线值，并基于相邻正峰估算电周期、RMS 窗口和可选转速。不是固定文件名扫描器，文件选择必须由 LLM 根据哈希映射和报告目标决定。 |
@@ -321,7 +318,7 @@ git clone <repo-url> "$env:CODEX_HOME\skills\motor-report-skill"
 修改 `SKILL.md` 或资源文件后，可使用 `skill-creator` 提供的校验脚本检查基本格式：
 
 ```powershell
-python C:\Users\Yang\.codex\skills\.system\skill-creator\scripts\quick_validate.py .
+python -X utf8 "$env:CODEX_HOME\skills\.system\skill-creator\scripts\quick_validate.py" .
 ```
 
 发布前建议至少检查：

@@ -45,7 +45,7 @@ def main():
             "generatedFile": str(dest.resolve()),
             "figureKind": "geometrySection",
             "metricNames": [],
-            "usedInReportSections": ["项目概述", "电机基本参数"],
+            "usedInReportSections": ["电机与仿真模型基本参数"],
             "extractionMethod": "resolve_report_figures.py",
             "confidence": 0.9,
             "notes": sourceKind

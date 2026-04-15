@@ -21,12 +21,46 @@ The LLM may adapt the structure, but a typical report includes:
 
 1. 项目概述
 2. 已识别资料来源
-3. 电机基本参数
+3. 电机与仿真模型基本参数
 4. 实测数据来源说明
 5. 仿真结果来源说明
 6. 关键指标对比
 7. 差异说明
 8. 结论与适用性说明
+
+When magnetic-circuit `工况报表结果.csv` exists, the `电机与仿真模型基本参数` section is required. Include the project geometry image in this section and use a detailed parameter table sourced from the report CSV. Include phase resistance whenever it exists in the source, and keep 25 C reference resistance separate from working-temperature resistance.
+
+## Basic Parameter Section
+
+The `电机与仿真模型基本参数` section is not a workpoint report excerpt.
+
+Use single-value structural tables only:
+
+| 参数 | 数值 | 单位 | 说明 |
+|---|---:|---|---|
+
+Each parameter row must have exactly one value. Do not create columns for `最大效率点`, `额定点`, `最大输出转矩`, `最大输出功率`, or other workpoints in this section. Do not write slash-joined multi-workpoint values in one cell.
+
+Include motor/model structure, geometry, material, winding, magnetic steel, circuit type, control/modulation definition, and 25 C reference phase resistance when available.
+
+Move operating/result quantities to later sections: running speed, load torque, output power target, current limit, sine-wave frequency, working temperature, working-temperature phase resistance, phase/line current, phase/line voltage, input/output power, efficiency, and losses.
+
+## Key Comparison Section
+
+Before writing numeric comparisons, state or imply the metric mapping used. Names may differ between measured and simulation data. For example, measured `T` or `输出转矩` can correspond to simulation `Tmech` or `机械转矩`; measured `Po` can correspond to simulation `Pmech`; measured `Pi` can correspond to simulation `Pin`; measured `EFF` can correspond to simulation `eff`.
+
+Compare same control method and same physical boundary first. For PMSM magnetic-circuit reports, treat the calculation as motor-only FOC/SVPWM unless the source says otherwise, and compare it primarily with motor-only FOC measured data. Compare square-wave simulation or parametric-scan results primarily with motor-only square-wave measured data. Put whole-machine or motor-plus-reducer measured data after motor-only comparisons and label it as trend or transformed reference.
+
+When a measured report has a feature-point table, use that table's row structure for the comparison. Keep measured rows such as no-load, maximum efficiency, rated, maximum output, and maximum torque. Preserve measured columns such as `U`, `I`, `Pi`, `T`, `n`, `Po`, and `Eff` whenever possible, and add simulation value and difference columns for each mapped metric. Do not replace measured feature rows with simulation-native feature points.
+
+Use all evidence that is meaningfully comparable. Organize it by comparison boundary and confidence instead of dropping difficult rows:
+
+- direct same-boundary comparisons
+- comparisons after explicit speed/torque/voltage/back-EMF scaling
+- trend comparisons where conditions differ but the engineering relationship is still useful
+- items with unclear basis that should be discussed but not assigned a strict pass/fail judgment
+
+When measured data is motor plus reducer or whole-machine output data, name it that way in headings and tables. Do not call it single-motor test data unless the source clearly says the measured shaft is the motor shaft. Do not use strict accuracy or validation wording for whole-machine efficiency, current, or limit output when the simulation is motor-only.
 
 ## Difference Wording
 

@@ -2,6 +2,7 @@
 import argparse
 import csv
 import json
+import statistics
 from pathlib import Path
 
 
@@ -63,12 +64,145 @@ def chooseColumns(rows):
     return best
 
 
+def numericValues(row):
+    return [toFloat(item) for item in row if toFloat(item) is not None]
+
+
+def readPolePairs(reportPath):
+    if not reportPath:
+        return None, [], None
+    rows, encoding = readRows(reportPath)
+    warnings = []
+    for row in rows:
+        labelText = " ".join(str(item).strip() for item in row if str(item).strip())
+        values = numericValues(row)
+        if not values:
+            continue
+        if "极对数" in labelText:
+            polePairs = values[0]
+            return polePairs, warnings, f"{Path(reportPath).name}: 极对数={polePairs} (encoding={encoding})"
+        if "极数" in labelText:
+            poleCount = values[0]
+            polePairs = poleCount / 2
+            uniqueValues = {round(value, 8) for value in values}
+            if len(uniqueValues) > 1:
+                warnings.append(f"Pole count row has multiple numeric values; using the first value {poleCount}.")
+            return polePairs, warnings, f"{Path(reportPath).name}: 极数={poleCount}, 极对数={polePairs} (encoding={encoding})"
+    warnings.append(f"Could not find 极数 or 极对数 in {reportPath}.")
+    return None, warnings, None
+
+
+def resolvePolePairs(args):
+    if args.pole_pairs is not None:
+        return args.pole_pairs, [], "command line --pole-pairs"
+    if args.pole_count is not None:
+        return args.pole_count / 2, [], "command line --pole-count"
+    return readPolePairs(args.motor_report_csv)
+
+
+def groupPeakTimes(points):
+    if len(points) < 3:
+        return []
+    yValues = [point[1] for point in points]
+    yMin = min(yValues)
+    yMax = max(yValues)
+    yRange = yMax - yMin
+    if yRange <= 0:
+        return []
+    threshold = yMin + yRange * 0.75
+    groups = []
+    current = []
+    for xValue, yValue in points:
+        if yValue >= threshold:
+            current.append((xValue, yValue))
+        elif current:
+            groups.append(current)
+            current = []
+    if current:
+        groups.append(current)
+    peakTimes = []
+    for group in groups:
+        peakTime, _ = max(group, key=lambda item: item[1])
+        peakTimes.append(peakTime)
+    return peakTimes
+
+
+def localPeakTimes(points):
+    if len(points) < 3:
+        return []
+    yValues = [point[1] for point in points]
+    yMin = min(yValues)
+    yMax = max(yValues)
+    threshold = yMin + (yMax - yMin) * 0.55
+    peaks = []
+    for index in range(1, len(points) - 1):
+        left = points[index - 1][1]
+        value = points[index][1]
+        right = points[index + 1][1]
+        if value >= threshold and value >= left and value > right:
+            peaks.append(points[index])
+    if not peaks:
+        return []
+    duration = points[-1][0] - points[0][0]
+    minSeparation = duration / 20 if duration > 0 else 0
+    filtered = []
+    for xValue, yValue in peaks:
+        if not filtered or xValue - filtered[-1][0] >= minSeparation:
+            filtered.append((xValue, yValue))
+        elif yValue > filtered[-1][1]:
+            filtered[-1] = (xValue, yValue)
+    return [point[0] for point in filtered]
+
+
+def estimateSpeedFromPeaks(points, polePairs):
+    if polePairs is None or polePairs <= 0:
+        return None, "pole pairs unavailable"
+    sortedPoints = sorted(points, key=lambda item: item[0])
+    peakTimes = groupPeakTimes(sortedPoints)
+    method = "threshold peak grouping"
+    if len(peakTimes) < 2:
+        peakTimes = localPeakTimes(sortedPoints)
+        method = "local peak fallback"
+    periods = [peakTimes[index] - peakTimes[index - 1] for index in range(1, len(peakTimes)) if peakTimes[index] > peakTimes[index - 1]]
+    if not periods:
+        return None, "not enough adjacent positive peaks"
+    period = statistics.median(periods)
+    if period <= 0:
+        return None, "invalid peak period"
+    electricalFrequency = 1 / period
+    mechanicalRpm = electricalFrequency / polePairs * 60
+    variation = 0.0
+    if len(periods) > 1:
+        meanPeriod = statistics.mean(periods)
+        variation = statistics.pstdev(periods) / meanPeriod if meanPeriod else 0.0
+    confidence = 0.65
+    if len(peakTimes) >= 3 and variation <= 0.05:
+        confidence = 0.8
+    elif len(peakTimes) == 2:
+        confidence = 0.55
+    return {
+        "mechanicalSpeedRpm": mechanicalRpm,
+        "electricalFrequencyHz": electricalFrequency,
+        "electricalPeriodSec": period,
+        "polePairs": polePairs,
+        "peakTimesSec": peakTimes,
+        "periodsSec": periods,
+        "method": method,
+        "confidence": confidence,
+        "periodVariation": variation,
+        "assumption": "Adjacent positive maxima in the measured line-voltage waveform represent one electrical period."
+    }, None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Plot an oscilloscope waveform CSV. This is an example parser for the current Tektronix-like format.")
     parser.add_argument("csvFile", help="Oscilloscope CSV file.")
     parser.add_argument("--output", required=True, help="Output PNG path.")
     parser.add_argument("--title", default="Measured Oscilloscope Waveform", help="Plot title.")
     parser.add_argument("--evidence-output", help="Optional evidence JSON output path.")
+    parser.add_argument("--motor-report-csv", help="Magnetic-circuit report CSV used to read pole count or pole pairs.")
+    parser.add_argument("--pole-pairs", type=float, help="Override motor pole pairs for speed estimation.")
+    parser.add_argument("--pole-count", type=float, help="Override motor pole count; pole pairs are pole count / 2.")
     args = parser.parse_args()
 
     warnings = []
@@ -91,6 +225,11 @@ def main():
 
     xValues = [point[0] for point in chosen["points"]]
     yValues = [point[1] for point in chosen["points"]]
+    polePairs, poleWarnings, poleSource = resolvePolePairs(args)
+    warnings.extend(poleWarnings)
+    speedEstimate, speedWarning = estimateSpeedFromPeaks(chosen["points"], polePairs)
+    if speedWarning:
+        warnings.append(f"Speed estimation skipped: {speedWarning}.")
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -116,6 +255,12 @@ def main():
         "confidence": 0.65,
         "notes": f"encoding={encoding}; xCol={chosen['xCol'] + 1}; yCol={chosen['yCol'] + 1}; example parser only"
     }
+    if poleSource:
+        record["polePairsSource"] = poleSource
+    if speedEstimate:
+        record["speedEstimate"] = speedEstimate
+        record["metricNames"].extend(["estimatedElectricalFrequency", "estimatedMechanicalSpeed"])
+        record["notes"] += f"; estimated speed={speedEstimate['mechanicalSpeedRpm']:.3f} rpm from line-voltage peak period and pole pairs"
     result = {"warnings": warnings, "figures": [record]}
     outputText = json.dumps(result, ensure_ascii=False, indent=2)
     if args.evidence_output:

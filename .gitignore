@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+report-output/
+figures/
+report-state.json
+evidence-ledger.json
+change-log.md
+
+*.tmp
+*.temp
+*.log

@@ -7,6 +7,20 @@ from pathlib import Path
 
 
 HASH_DIR_PATTERN = re.compile(r"^[0-9a-fA-F]{8,}$")
+DEFAULT_IGNORE_DIRS = {".git", "__pycache__", "report-output", "figures"}
+DEFAULT_IGNORE_FILES = {"report-state.json", "evidence-ledger.json", "change-log.md"}
+
+
+def shouldIgnoreDir(dirName, includeGenerated=False):
+    if includeGenerated:
+        return False
+    return dirName in DEFAULT_IGNORE_DIRS
+
+
+def shouldIgnoreFile(fileName, includeGenerated=False):
+    if includeGenerated:
+        return False
+    return fileName in DEFAULT_IGNORE_FILES
 
 
 def guessCategory(relativePath, extension):
@@ -49,7 +63,7 @@ def guessCategory(relativePath, extension):
     return category, tags, round(score, 2)
 
 
-def scanProject(projectRoot, maxFiles):
+def scanProject(projectRoot, maxFiles, includeGenerated=False):
     rootPath = Path(projectRoot).resolve()
     records = []
     warnings = []
@@ -59,6 +73,7 @@ def scanProject(projectRoot, maxFiles):
         raise FileNotFoundError(f"Project root not found: {rootPath}")
 
     for currentRoot, dirNames, fileNames in os.walk(rootPath):
+        dirNames[:] = [dirName for dirName in dirNames if not shouldIgnoreDir(dirName, includeGenerated)]
         currentPath = Path(currentRoot)
         try:
             relativeDir = currentPath.relative_to(rootPath)
@@ -70,6 +85,8 @@ def scanProject(projectRoot, maxFiles):
                 hashFolders.append(str((relativeDir / dirName).as_posix()))
 
         for fileName in fileNames:
+            if shouldIgnoreFile(fileName, includeGenerated):
+                continue
             if len(records) >= maxFiles:
                 warnings.append(f"Reached maxFiles={maxFiles}; remaining files skipped.")
                 return buildOutput(rootPath, records, hashFolders, warnings)
@@ -111,10 +128,11 @@ def main():
     parser = argparse.ArgumentParser(description="Scan a motor trial project and output a JSON file index.")
     parser.add_argument("projectRoot", help="Project root path to scan.")
     parser.add_argument("--max-files", type=int, default=5000, help="Maximum number of files to index.")
+    parser.add_argument("--include-generated", action="store_true", help="Include generated/report/cache files that are ignored by default.")
     parser.add_argument("--output", help="Optional JSON output path.")
     args = parser.parse_args()
 
-    result = scanProject(args.projectRoot, args.max_files)
+    result = scanProject(args.projectRoot, args.max_files, args.include_generated)
     outputText = json.dumps(result, ensure_ascii=False, indent=2)
 
     if args.output:

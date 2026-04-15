@@ -28,6 +28,8 @@ Look for cues such as:
 
 Convert extracted facts into `MeasuredDatum` records. If only a trend or qualitative observation is available, keep it in `note` and avoid inventing numeric values.
 
+When measured data appears to include a reducer, gearbox, joint module, output shaft, or whole-machine/system output boundary, label it explicitly as `电机+减速器整机测试`, `整机输出端测试`, or an equivalent boundary-specific name. Do not shorten it to single-motor measured data unless the source clearly states the measured shaft is the motor shaft. Preserve this boundary in section headings, table labels, comparison conditions, and conclusions.
+
 ## Simulation Data
 
 For `.em3` projects, never infer the overall meaning of a hash folder without user mapping.

@@ -51,7 +51,7 @@ report-output/
 1. Read the existing report and state package.
 2. Parse the user's change request.
 3. If a new `.em3` hash folder is mentioned, confirm its simulation meaning is provided.
-4. Run `diff_project_state.py` to compare current project files against the previous evidence ledger.
+4. Run `diff_project_state.py` to compare current evidence source files against the previous evidence ledger.
 5. Decide affected scope:
    - new simulation folder: inspect only that folder and related existing measured data
    - changed simulation folder: re-read only records tied to that folder
@@ -60,6 +60,8 @@ report-output/
 6. Rebuild affected `simulationData`, `measuredData`, and `comparisonRows`.
 7. Ask the LLM to update only affected report sections unless the change broadly affects the report.
 8. Update state files and append `change-log.md`.
+
+`diff_project_state.py` compares only files already referenced by `evidence-ledger.json` by default. It ignores generated/internal paths such as `.git`, `__pycache__`, `report-output`, `figures`, `report-state.json`, `evidence-ledger.json`, and `change-log.md`. Use `--scan-added` only when the user says new evidence was added but does not provide a path, or when the existing state is incomplete.
 
 ## Affected Scope Rules
 
